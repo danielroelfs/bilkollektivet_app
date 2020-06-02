@@ -13,7 +13,8 @@ shinyUI(fluidPage(
     theme = "style.css",
     
     # Application title
-    headerPanel("Bilkollektivet trip cost"),
+    titlePanel(title = "Bilkollektivet trip cost", 
+                windowTitle = "Cost Bilkollektivet"),
     
     # Sidebar with a slider input for number of bins
     sidebarLayout(

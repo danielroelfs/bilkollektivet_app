@@ -4,14 +4,22 @@
 /* header */
 
 /* body */
-h1 {
+h2 {
   font-family: 'Roboto', sans-serif;
-  font-weight: 300;
+  font-weight: 900;
   line-height: 1.1;
   color: #8A29BE;
 }
 
-h2 {
+.col-sm-12 {
+  background-color: lightblue;
+  font-family: 'Roboto', sans-serif;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #8A29BE;
+}
+
+h3 {
   font-family: 'Roboto', sans-serif;
   font-weight: 900;
   color: #262626;

@@ -52,10 +52,6 @@ shinyServer(function(input, output) {
     pricelist <- pricelist %>%
         mutate_at(vars(starts_with("price")), parse_number)
     
-    format_price <- function(x) {
-        return(paste0(x,",-"))
-    }
-    
     # Show base prices
     output$baseprices <- render_gt({
         carlabels <- tribble(
@@ -79,7 +75,8 @@ shinyServer(function(input, output) {
             pull(linkname) %>%
             sprintf("https://bilkollektivet.no/content/uploads/2019/09/%s.png",.)
         
-        prices %>%
+        pricelist %>%
+            filter(cartype == cartype()) %>%
             gt() %>%
             tab_options(
                 table.width = pct(80),
