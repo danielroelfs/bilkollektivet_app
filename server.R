@@ -24,6 +24,10 @@ shinyServer(function(input, output) {
         n_hours <- input$n_hours
     })
     
+    n_pass <- reactive({
+        n_pass <- input$n_pass
+    })
+    
     cartype <- reactive({
         cartype <- input$cartype
     })
@@ -155,6 +159,7 @@ shinyServer(function(input, output) {
         days_price <- prices$price_day * n_days()
         hours_price <- prices$price_hour * n_hours()
         
+        # Create breakdown table
         breakdown_table <- tribble(
             ~Item, ~Units, ~Baseprice, ~Price,
             "Start price", NA, NA, start_price,
@@ -169,7 +174,8 @@ shinyServer(function(input, output) {
             gt(rowname_col = "Item") %>%
             tab_options(
                 table.width = pct(80),
-                grand_summary_row.background.color = "#8A29BE",column_labels.font.weight = "bold"
+                grand_summary_row.background.color = "#8A29BE", 
+                column_labels.font.weight = "bold"
             ) %>%
             fmt_missing(
                 columns = everything(),
@@ -237,6 +243,119 @@ shinyServer(function(input, output) {
                     )
                 )
             )
+    })
+    
+    # Calculate individual price
+    output$per_passenger <- render_gt({
+        
+        prices <- pricelist %>%
+            filter(cartype == cartype())
+        
+        start_price <- 20
+        
+        # Calculate kilometer price 
+        if (dist() <= 200) {
+            dist_km <- dist()
+            dist_200km <- 0
+        } else {
+            dist_km <- 200
+            dist_200km <- dist() - 200
+        }
+        price_km <- prices$price_km * dist_km
+        price_200km <- prices$price_200km * dist_200km
+        
+        # Calculate time price
+        days_price <- prices$price_day * n_days()
+        hours_price <- prices$price_hour * n_hours()
+        
+        # Create breakdown table
+        breakdown_table <- tribble(
+            ~Item, ~Units, ~Baseprice, ~Price,
+            "Start price", NA, NA, start_price,
+            "Days",n_days(), prices$price_day, days_price,
+            "Hours",n_hours(), prices$price_hour, hours_price,
+            "Distance (< 200km)", dist_km, prices$price_km, price_km,
+            "Distance (> 200km)", dist_200km,prices$price_200km, price_200km,
+        )
+        
+        total_price <- sum(start_price, days_price, hours_price, price_km, price_200km)
+        passenger_price <- total_price / n_pass()
+        
+        if (n_pass() == 1) {
+            
+            tribble(
+                ~` `, ~Price,
+                "Total price is equal to individual price", total_price,
+            ) %>%
+                gt() %>%
+                tab_options(
+                    table.width = pct(50),
+                    column_labels.font.weight = "bold"
+                ) %>%
+                fmt_currency(
+                    columns = vars(Price), 
+                    currency = "NOK", 
+                    use_subunits = TRUE,
+                    sep_mark = ".",
+                    dec_mark = ",",
+                    incl_space = TRUE
+                ) %>%
+                tab_header(
+                    title = md("**Not splitting the costs**")
+                ) %>%
+                tab_style(
+                    style = list(
+                        cell_borders(
+                            sides = "bottom",
+                            color = "black",
+                            weight = px(3)
+                        )
+                    ),
+                    locations = list(
+                        cells_column_labels(
+                            columns = everything()
+                        )
+                    )
+                )
+            
+        } else {
+            
+            tribble(
+                ~` `, ~Price,
+                "Total price for trip", total_price,
+                "Price per passenger", passenger_price,
+            ) %>%
+                gt() %>%
+                tab_options(
+                    table.width = pct(50),
+                    column_labels.font.weight = "bold"
+                ) %>%
+                fmt_currency(
+                    columns = vars(Price), 
+                    currency = "NOK", 
+                    use_subunits = TRUE,
+                    sep_mark = ".",
+                    dec_mark = ",",
+                    incl_space = TRUE
+                ) %>%
+                tab_header(
+                    title = md(sprintf("**Splitting the cost between %s people**", n_pass()))
+                ) %>%
+                tab_style(
+                    style = list(
+                        cell_borders(
+                            sides = "bottom",
+                            color = "black",
+                            weight = px(3)
+                        )
+                    ),
+                    locations = list(
+                        cells_column_labels(
+                            columns = everything()
+                        )
+                    )
+                )
+        } # end of if-else
     })
     
 })

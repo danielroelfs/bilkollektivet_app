@@ -23,13 +23,13 @@ shinyUI(fluidPage(
             sliderInput(inputId = "dist",
                         label = "Estimated distance:",
                         min = 10,
-                        max = 1200,
+                        max = 2000,
                         value = 250, 
                         step = 10,
                         ticks = FALSE),
             sliderInput(inputId = "n_days",
                         label = "Number of days:",
-                        min = 1,
+                        min = 0,
                         max = 14,
                         value = 2,
                         ticks = FALSE),
@@ -38,6 +38,12 @@ shinyUI(fluidPage(
                         min = 0,
                         max = 7,
                         value = 0,
+                        ticks = FALSE),
+            sliderInput(inputId = "n_pass",
+                        label = "Number of passengers (incl. driver):",
+                        min = 1,
+                        max = 9,
+                        value = 1,
                         ticks = FALSE),
             radioGroupButtons(inputId = "cartype",
                 label = "Select car type:", 
@@ -76,10 +82,11 @@ shinyUI(fluidPage(
         # Show a plot of the generated distribution
         mainPanel(
             gt_output("baseprices"),
-            br(),
             hr(),
-            br(),
-            gt_output("breakdown")
+            gt_output("breakdown"),
+            hr(),
+            gt_output("per_passenger"),
+            hr()
         )
     )
 ))
