@@ -44,14 +44,16 @@ shinyServer(function(input, output) {
         .[. != ""] %>%
         .[5:length(.)] %>%
         str_replace_all(., ",-",".0") %>%
-        str_replace_all(., ",", ".")
+        str_replace_all(., ",", ".") %>%
+        .[. != 0]
     
-    pricelist <- tibble(.rows = length(htmltable_vector)/6)
-    pricelist$cartype <- htmltable_vector[seq(1,length(htmltable_vector),6)]
-    pricelist$price_km <- htmltable_vector[seq(2,length(htmltable_vector),6)]
-    pricelist$price_200km <- htmltable_vector[seq(3,length(htmltable_vector),6)]
-    pricelist$price_hour <- htmltable_vector[seq(4,length(htmltable_vector),6)]
-    pricelist$price_day <- htmltable_vector[seq(5,length(htmltable_vector),6)]
+    nr <- length(htmltable_vector)
+    pricelist <- tibble(.rows = nr/6)
+    pricelist$cartype <- htmltable_vector[seq(1,nr,6)]
+    pricelist$price_km <- htmltable_vector[seq(2,nr,6)]
+    pricelist$price_200km <- htmltable_vector[seq(3,nr,6)]
+    pricelist$price_hour <- htmltable_vector[seq(4,nr,6)]
+    pricelist$price_day <- htmltable_vector[seq(5,nr,6)]
     
     pricelist <- pricelist %>%
         mutate_at(vars(starts_with("price")), parse_number)
