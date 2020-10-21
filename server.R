@@ -33,7 +33,7 @@ shinyServer(function(input, output) {
     })
     
     # Input base prices
-    htmltable_vector <- "https://bilkollektivet.no/priser/" %>%
+    htmltable_vector <- "https://bilkollektivet.no/nye-priser/" %>%
         read_html() %>%
         html_nodes("table") %>%
         html_text() %>%
@@ -42,18 +42,18 @@ shinyServer(function(input, output) {
         .[[1]] %>%
         str_trim(., side = "both") %>%
         .[. != ""] %>%
-        .[5:length(.)] %>%
+        .[4:length(.)] %>%
         str_replace_all(., ",-",".0") %>%
         str_replace_all(., ",", ".") %>%
         .[. != 0]
     
-    nr <- length(htmltable_vector)
-    pricelist <- tibble(.rows = nr/6)
-    pricelist$cartype <- htmltable_vector[seq(1,nr,6)]
-    pricelist$price_km <- htmltable_vector[seq(2,nr,6)]
-    pricelist$price_200km <- htmltable_vector[seq(3,nr,6)]
-    pricelist$price_hour <- htmltable_vector[seq(4,nr,6)]
-    pricelist$price_day <- htmltable_vector[seq(5,nr,6)]
+    htmltable_matrix <- matrix(htmltable_vector, ncol = length(htmltable_vector)/10, byrow = TRUE)
+    pricelist <- as.tibble(htmltable_matrix) %>%
+        rename(cartype = V1,
+               price_hour = V2,
+               price_day = V3,
+               price_km = V4,
+               read_more = V5)
     
     pricelist <- pricelist %>%
         mutate_at(vars(starts_with("price")), parse_number)
@@ -64,10 +64,8 @@ shinyServer(function(input, output) {
             ~cartype, ~linkname,
             "Mellomklasse elbil", "elbil",
             "Premium elbil", "elbil-premium",
-            "Elektrisk lastesykkel", "elkassesykkel",
             "Elektrisk varebil", "elvarebil",
             "Småbil", "smabil",
-            "Mellomklasse", "mellomklasse",
             "Stasjonsvogn", "stasjonsvogn",
             "7-seter", "9seter",
             "SUV 4x4", "suv",
@@ -83,6 +81,7 @@ shinyServer(function(input, output) {
         
         pricelist %>%
             filter(cartype == cartype()) %>%
+            select(-read_more) %>%
             gt() %>%
             tab_options(
                 table.width = pct(80),
@@ -103,10 +102,9 @@ shinyServer(function(input, output) {
             ) %>%
             cols_label(
                 cartype = "",
-                price_km = "Per km (< 200km)",
-                price_200km = "Per km (> 200km)",
                 price_hour = "Timepris",
-                price_day = "Døgnpris"
+                price_day = "Døgnpris",
+                price_km = "Per kilometer"
             ) %>%
             text_transform(
                 locations = cells_body(vars(cartype)),
@@ -144,19 +142,10 @@ shinyServer(function(input, output) {
         prices <- pricelist %>%
             filter(cartype == cartype())
         
-        start_price <- 20
-        
         # Calculate kilometer price 
-        if (dist() <= 200) {
-            dist_km <- dist()
-            dist_200km <- 0
-        } else {
-            dist_km <- 200
-            dist_200km <- dist() - 200
-        }
+        dist_km <- dist()
         price_km <- prices$price_km * dist_km
-        price_200km <- prices$price_200km * dist_200km
-        
+
         # Calculate time price
         days_price <- prices$price_day * n_days()
         hours_price <- prices$price_hour * n_hours()
@@ -164,11 +153,9 @@ shinyServer(function(input, output) {
         # Create breakdown table
         breakdown_table <- tribble(
             ~Item, ~Units, ~Baseprice, ~Price,
-            "Start price", NA, NA, start_price,
-            "Days",n_days(), prices$price_day, days_price,
-            "Hours",n_hours(), prices$price_hour, hours_price,
-            "Distance (< 200km)", dist_km, prices$price_km, price_km,
-            "Distance (> 200km)", dist_200km,prices$price_200km, price_200km,
+            "Days", n_days(), prices$price_day, days_price,
+            "Hours", n_hours(), prices$price_hour, hours_price,
+            "Distance", dist_km, prices$price_km, price_km,
         )
         
         
@@ -253,19 +240,10 @@ shinyServer(function(input, output) {
         prices <- pricelist %>%
             filter(cartype == cartype())
         
-        start_price <- 20
-        
         # Calculate kilometer price 
-        if (dist() <= 200) {
-            dist_km <- dist()
-            dist_200km <- 0
-        } else {
-            dist_km <- 200
-            dist_200km <- dist() - 200
-        }
-        price_km <- prices$price_km * dist_km
-        price_200km <- prices$price_200km * dist_200km
-        
+        dist_km <- dist()
+        price_km <- prices$price_km * dist()
+
         # Calculate time price
         days_price <- prices$price_day * n_days()
         hours_price <- prices$price_hour * n_hours()
@@ -273,14 +251,12 @@ shinyServer(function(input, output) {
         # Create breakdown table
         breakdown_table <- tribble(
             ~Item, ~Units, ~Baseprice, ~Price,
-            "Start price", NA, NA, start_price,
-            "Days",n_days(), prices$price_day, days_price,
-            "Hours",n_hours(), prices$price_hour, hours_price,
-            "Distance (< 200km)", dist_km, prices$price_km, price_km,
-            "Distance (> 200km)", dist_200km,prices$price_200km, price_200km,
+            "Days", n_days(), prices$price_day, days_price,
+            "Hours", n_hours(), prices$price_hour, hours_price,
+            "Distance", dist_km, prices$price_km, price_km
         )
         
-        total_price <- sum(start_price, days_price, hours_price, price_km, price_200km)
+        total_price <- sum(days_price, hours_price, price_km)
         passenger_price <- total_price / n_pass()
         
         if (n_pass() == 1) {
