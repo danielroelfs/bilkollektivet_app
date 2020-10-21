@@ -145,19 +145,33 @@ shinyServer(function(input, output) {
         # Calculate kilometer price 
         dist_km <- dist()
         price_km <- prices$price_km * dist_km
-
+        
         # Calculate time price
         days_price <- prices$price_day * n_days()
         hours_price <- prices$price_hour * n_hours()
         
+        if (n_days() < 7) {
+            discount <- 0
+            discount_day <- 0
+        } else if (n_days() >= 7 & n_days() < 14) {
+            discount <- 0.20
+            discount_day <- prices$price_day * discount * -1
+        } else if (n_days() >= 14) {
+            discount <- 0.30
+            discount_day <- prices$price_day * discount * -1
+        }
+        
+        discount_text <- pct(discount * 100)
+        discount_price <- ifelse(discount > 0, days_price * discount * -1, 0)
+
         # Create breakdown table
         breakdown_table <- tribble(
             ~Item, ~Units, ~Baseprice, ~Price,
             "Days", n_days(), prices$price_day, days_price,
+            "Discount", discount, discount_day, discount_price,
             "Hours", n_hours(), prices$price_hour, hours_price,
             "Distance", dist_km, prices$price_km, price_km,
         )
-        
         
         breakdown_table %>%
             gt(rowname_col = "Item") %>%
@@ -169,6 +183,11 @@ shinyServer(function(input, output) {
             fmt_missing(
                 columns = everything(),
                 missing_text = ""
+            ) %>%
+            fmt(
+                columns = vars(Units),
+                rows = contains("Discount"),
+                fns = function(x) pct(x * 100)
             ) %>%
             fmt_currency(
                 columns = vars(Baseprice), 
@@ -199,10 +218,18 @@ shinyServer(function(input, output) {
                 incl_space = TRUE
             ) %>%
             tab_footnote(
+                footnote =  md("Discount of 20% on rental periods of 7 days or longer, 30% for 14 days or longer"),
+                locations = cells_body(columns = "Units", rows = contains("Discount"))
+            ) %>%
+            tab_footnote(
                 footnote =  md("Fuel and tolls included"),
                 locations = cells_grand_summary(
                     columns = vars(Price)
                 )
+            ) %>%
+            cols_align(
+                align = "center",
+                columns = vars(Units)
             ) %>%
             tab_style(
                 style = list(
@@ -243,29 +270,32 @@ shinyServer(function(input, output) {
         # Calculate kilometer price 
         dist_km <- dist()
         price_km <- prices$price_km * dist()
-
+        
         # Calculate time price
         days_price <- prices$price_day * n_days()
         hours_price <- prices$price_hour * n_hours()
         
-        # Create breakdown table
-        breakdown_table <- tribble(
-            ~Item, ~Units, ~Baseprice, ~Price,
-            "Days", n_days(), prices$price_day, days_price,
-            "Hours", n_hours(), prices$price_hour, hours_price,
-            "Distance", dist_km, prices$price_km, price_km
-        )
+        if (n_days() < 7) {
+            discount <- 0
+        } else if (n_days() >= 7 & n_days() < 14) {
+            discount <- 0.20
+        } else if (n_days() >= 14) {
+            discount <- 0.30
+        }
         
-        total_price <- sum(days_price, hours_price, price_km)
+        discount_price <- ifelse(discount > 0, days_price * discount * -1, 0)
+        
+        total_price <- sum(days_price, discount_price, hours_price, price_km)
         passenger_price <- total_price / n_pass()
         
         if (n_pass() == 1) {
             
             tribble(
-                ~` `, ~Price,
+                ~text, ~Price,
                 "Total price is equal to individual price", total_price,
             ) %>%
                 gt() %>%
+                cols_label(text = "") %>%
                 tab_options(
                     table.width = pct(50),
                     column_labels.font.weight = "bold"
@@ -299,11 +329,12 @@ shinyServer(function(input, output) {
         } else {
             
             tribble(
-                ~` `, ~Price,
+                ~text, ~Price,
                 "Total price for trip", total_price,
                 "Price per passenger", passenger_price,
             ) %>%
                 gt() %>%
+                cols_label(text = "") %>%
                 tab_options(
                     table.width = pct(50),
                     column_labels.font.weight = "bold"
