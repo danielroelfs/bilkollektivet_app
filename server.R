@@ -33,7 +33,7 @@ shinyServer(function(input, output) {
     })
     
     # Input base prices
-    htmltable_vector <- "https://bilkollektivet.no/nye-priser/" %>%
+    htmltable_vector <- "https://bilkollektivet.no/priser/" %>%
         read_html() %>%
         html_nodes("table") %>%
         html_text() %>%
@@ -47,8 +47,8 @@ shinyServer(function(input, output) {
         str_replace_all(., ",", ".") %>%
         .[. != 0]
     
-    htmltable_matrix <- matrix(htmltable_vector, ncol = length(htmltable_vector)/10, byrow = TRUE)
-    pricelist <- as.tibble(htmltable_matrix) %>%
+    htmltable_matrix <- matrix(htmltable_vector, ncol = length(htmltable_vector)/9, byrow = TRUE)
+    pricelist <- as_tibble(htmltable_matrix) %>%
         rename(cartype = V1,
                price_hour = V2,
                price_day = V3,
