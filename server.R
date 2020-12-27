@@ -32,6 +32,10 @@ shinyServer(function(input, output) {
         cartype <- input$cartype
     })
     
+    insurance <- reactive({
+        insurance <- input$insurance
+    })
+    
     # Input base prices
     htmltable_vector <- "https://bilkollektivet.no/priser/" %>%
         read_html() %>%
@@ -56,7 +60,12 @@ shinyServer(function(input, output) {
                read_more = V5)
     
     pricelist <- pricelist %>%
-        mutate_at(vars(starts_with("price")), parse_number)
+        mutate(across(starts_with("price"), parse_number))
+    
+    # Show cartype as title
+    output$title <- renderText({
+        cartype()
+    })
     
     # Show base prices
     output$baseprices <- render_gt({
@@ -161,9 +170,24 @@ shinyServer(function(input, output) {
             discount_day <- prices$price_day * discount * -1
         }
         
+        if (input$insurance) {
+            ins_cost <- (n_hours() * 11) + (n_days() * 77)
+            if (n_days() >= 1) {
+                ins_unit <- n_days()
+                ins_cost_base <- 77
+            } else {
+                ins_unit <- n_hours()
+                ins_cost_base <- 11
+            }
+        } else {
+            ins_cost <- 0
+            ins_unit <- 0
+            ins_cost_base <- 0
+        }
+        
         discount_text <- pct(discount * 100)
         discount_price <- ifelse(discount > 0, days_price * discount * -1, 0)
-
+        
         # Create breakdown table
         breakdown_table <- tribble(
             ~Item, ~Units, ~Baseprice, ~Price,
@@ -171,6 +195,7 @@ shinyServer(function(input, output) {
             "Discount", discount, discount_day, discount_price,
             "Hours", n_hours(), prices$price_hour, hours_price,
             "Distance", dist_km, prices$price_km, price_km,
+            "Additional insurance", ins_unit, ins_cost_base, ins_cost
         )
         
         breakdown_table %>%
@@ -220,6 +245,10 @@ shinyServer(function(input, output) {
             tab_footnote(
                 footnote =  md("Discount of 20% on rental periods of 7 days or longer, 30% for 14 days or longer"),
                 locations = cells_body(columns = "Units", rows = contains("Discount"))
+            ) %>%
+            tab_footnote(
+                footnote =  md("Additional insurance is 11 NOK per hour or 77 NOK per day"),
+                locations = cells_body(columns = "Units", rows = contains("Additional insurance"))
             ) %>%
             tab_footnote(
                 footnote =  md("Fuel and tolls included"),

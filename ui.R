@@ -77,10 +77,14 @@ shinyUI(fluidPage(
                               #                        "7-seter", "SUV 4x4", "9-seter", 
                               #                        "Varebil", "Stor varebil")))
             ),
+            checkboxInput(inputId = "insurance",
+                          label = "Additional insurance",
+                          value = FALSE)
         ),
         
         # Show a plot of the generated distribution
         mainPanel(
+            span(h1(textOutput("title")), style = "text-indent: 10%"),
             gt_output("baseprices"),
             hr(),
             gt_output("breakdown"),
