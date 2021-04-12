@@ -30,6 +30,8 @@ shinyServer(function(input, output) {
     
     cartype <- reactive({
         cartype <- input$cartype
+        cartype <- case_when(str_detect(cartype, "Tesla|Jaguar") ~ str_glue("{cartype} (el)"),
+                             TRUE ~ cartype)
     })
     
     insurance <- reactive({
@@ -71,16 +73,16 @@ shinyServer(function(input, output) {
     output$baseprices <- render_gt({
         carlabels <- tribble(
             ~cartype, ~linkname,
-            "Mellomklasse elbil", "elbil",
-            "Premium elbil", "elbil-premium",
-            "Elektrisk varebil", "elvarebil",
             "Småbil", "smabil",
+            "Mellomklasse elbil", "elbil",
             "Stasjonsvogn", "stasjonsvogn",
+            "Tesla Model 3 (el)", "elbil",
+            "Jaguar Ipace (el)", "elbil-premium",
             "7-seter", "9seter",
             "SUV 4x4", "suv",
+            "Elektrisk varebil", "elvarebil",
             "9-seter", "9seter",
-            "Varebil", "varebil",
-            "Stor varebil", "varebil_stor"
+            "Varebil", "varebil"
         )
         
         url <- carlabels %>%

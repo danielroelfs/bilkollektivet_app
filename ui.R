@@ -19,6 +19,7 @@ shinyUI(fluidPage(
     # Sidebar with a slider input for number of bins
     sidebarLayout(
         sidebarPanel(
+            tags$style(".well {background-color: transparent;border: none; box-shadow: none}"),
             chooseSliderSkin("Flat", color = "#8A29BE"),
             sliderInput(inputId = "dist",
                         label = "Estimated distance:",
@@ -47,18 +48,16 @@ shinyUI(fluidPage(
                         ticks = FALSE),
             radioGroupButtons(inputId = "cartype",
                               label = "Select car type:", 
-                              choices = c("Mellomklasse elbil", #= "elbil_mellom",
-                                          "Premium elbil", #= "elbil_premium",
-                                          #"Elektrisk lastesykkel", #= "elsykkel",
-                                          "Elektrisk varebil", #= "varebil_el",
-                                          "Småbil", #= "smabil",
-                                          #"Mellomklasse", #= "mellomklasse",
+                              choices = c("Småbil", #= "smabil",
+                                          "Mellomklasse elbil", #= "elbil_mellom",
                                           "Stasjonsvogn", #= "stasjonsvogn",
+                                          "Tesla Model 3", #= "elbil",
+                                          "Jaguar Ipace", #= "elbil_premium",
                                           "7-seter", #= "7-seter",
                                           "SUV 4x4", #= "suv",
+                                          "Elektrisk varebil", #= "varebil_el",
                                           "9-seter", #= "9-seter",
-                                          "Varebil", #= "varebil",
-                                          "Stor varebil"#= "varebil_stor"))
+                                          "Varebil" #= "varebil",
                               ),
                               checkIcon = list(yes = icon("check")), 
                               justified = FALSE,
@@ -86,11 +85,11 @@ shinyUI(fluidPage(
         mainPanel(
             span(h1(textOutput("title")), style = "text-indent: 10%"),
             gt_output("baseprices"),
-            hr(),
+            br(),
             gt_output("breakdown"),
-            hr(),
+            br(),
             gt_output("per_passenger"),
-            hr()
+            br()
         )
     )
 ))
