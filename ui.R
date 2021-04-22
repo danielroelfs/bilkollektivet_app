@@ -48,7 +48,8 @@ shinyUI(fluidPage(
                         ticks = FALSE),
             radioGroupButtons(inputId = "cartype",
                               label = "Select car type:", 
-                              choices = c("Småbil", #= "smabil",
+                              choices = c("Liten elbil", #= elbil_liten
+                                          "Småbil", #= "smabil",
                                           "Mellomklasse elbil", #= "elbil_mellom",
                                           "Stasjonsvogn", #= "stasjonsvogn",
                                           "Tesla Model 3", #= "elbil",

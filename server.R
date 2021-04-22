@@ -53,13 +53,14 @@ shinyServer(function(input, output) {
         str_replace_all(., ",", ".") %>%
         .[. != 0]
     
-    htmltable_matrix <- matrix(htmltable_vector, ncol = length(htmltable_vector)/9, byrow = TRUE)
-    pricelist <- as_tibble(htmltable_matrix) %>%
-        rename(cartype = V1,
-               price_hour = V2,
-               price_day = V3,
-               price_km = V4,
-               read_more = V5)
+    htmltable_matrix <- matrix(htmltable_vector, ncol = length(htmltable_vector)/10, byrow = TRUE)
+    pricelist <- as_tibble(htmltable_matrix, .name_repair = "unique") %>%
+        janitor::clean_names() %>% 
+        rename(cartype = x1,
+               price_hour = x2,
+               price_day = x3,
+               price_km = x4,
+               read_more = x5)
     
     pricelist <- pricelist %>%
         mutate(across(starts_with("price"), parse_number))
@@ -73,6 +74,7 @@ shinyServer(function(input, output) {
     output$baseprices <- render_gt({
         carlabels <- tribble(
             ~cartype, ~linkname,
+            "Liten elbil", "smabil",
             "Småbil", "smabil",
             "Mellomklasse elbil", "elbil",
             "Stasjonsvogn", "stasjonsvogn",
