@@ -79,10 +79,11 @@ shinyServer(function(input, output) {
             "Mellomklasse elbil", "elbil",
             "Stasjonsvogn", "stasjonsvogn",
             "Tesla Model 3 (el)", "elbil",
+            "Tesla Model Y (el)", "elbil-premium",
             "Jaguar Ipace (el)", "elbil-premium",
             "7-seter", "9seter",
             "SUV 4x4", "suv",
-            "Elektrisk varebil", "elvarebil",
+            "El-varebil", "elvarebil",
             "9-seter", "9seter",
             "Varebil", "varebil"
         )
@@ -175,13 +176,13 @@ shinyServer(function(input, output) {
         }
         
         if (input$insurance) {
-            ins_cost <- (n_hours() * 11) + (n_days() * 77)
+            ins_cost <- (n_hours() * 14) + (n_days() * 96)
             if (n_days() >= 1) {
                 ins_unit <- n_days()
-                ins_cost_base <- 77
+                ins_cost_base <- 96
             } else {
                 ins_unit <- n_hours()
-                ins_cost_base <- 11
+                ins_cost_base <- 14
             }
         } else {
             ins_cost <- 0
@@ -308,6 +309,13 @@ shinyServer(function(input, output) {
         days_price <- prices$price_day * n_days()
         hours_price <- prices$price_hour * n_hours()
         
+        # Calculate insurance price
+        if (input$insurance) {
+            ins_cost <- (n_hours() * 11) + (n_days() * 77)
+        } else {
+            ins_cost <- 0
+        }
+        
         if (n_days() < 7) {
             discount <- 0
         } else if (n_days() >= 7 & n_days() < 14) {
@@ -318,7 +326,7 @@ shinyServer(function(input, output) {
         
         discount_price <- ifelse(discount > 0, days_price * discount * -1, 0)
         
-        total_price <- sum(days_price, discount_price, hours_price, price_km)
+        total_price <- sum(days_price, discount_price, hours_price, price_km, ins_cost)
         passenger_price <- total_price / n_pass()
         
         if (n_pass() == 1) {
