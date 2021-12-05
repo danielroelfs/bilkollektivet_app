@@ -48,22 +48,23 @@ shinyServer(function(input, output) {
         .[[1]] %>%
         str_trim(., side = "both") %>%
         .[. != ""] %>%
-        .[4:length(.)] %>%
+        .[5:length(.)] %>%
         str_replace_all(., ",-",".0") %>%
         str_replace_all(., ",", ".") %>%
         .[. != 0]
     
     htmltable_matrix <- matrix(htmltable_vector, ncol = length(htmltable_vector)/10, byrow = TRUE)
-    pricelist <- as_tibble(htmltable_matrix, .name_repair = "unique") %>%
+    pricelist <- htmltable_matrix %>% 
+        as_tibble(., .name_repair = "minimal") %>%
         janitor::clean_names() %>% 
-        rename(cartype = x1,
-               price_hour = x2,
-               price_day = x3,
-               price_km = x4,
-               read_more = x5)
+        rename(cartype = x,
+               price_hour = x_2,
+               price_day = x_3,
+               price_km = x_4)
     
     pricelist <- pricelist %>%
-        mutate(across(starts_with("price"), parse_number))
+        mutate(across(starts_with("price"), parse_number),
+               cartype = str_remove_all(cartype, "\\Les mer om [^.]*$"))
     
     # Show cartype as title
     output$title <- renderText({
@@ -95,7 +96,6 @@ shinyServer(function(input, output) {
         
         pricelist %>%
             filter(cartype == cartype()) %>%
-            select(-read_more) %>%
             gt() %>%
             tab_options(
                 table.width = pct(80),
