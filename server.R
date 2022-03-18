@@ -30,7 +30,7 @@ shinyServer(function(input, output) {
     
     cartype <- reactive({
         cartype <- input$cartype
-        cartype <- case_when(str_detect(cartype, "Tesla|Jaguar") ~ str_glue("{cartype} (el)"),
+        cartype <- case_when(str_detect(cartype, "Tesla") ~ str_glue("{cartype} (el)"),
                              TRUE ~ cartype)
     })
     
@@ -39,32 +39,18 @@ shinyServer(function(input, output) {
     })
     
     # Input base prices
-    htmltable_vector <- "https://bilkollektivet.no/priser/" %>%
-        read_html() %>%
-        html_nodes("table") %>%
-        html_text() %>%
-        str_replace_all(., "\\t","") %>%
-        str_split(., "\\n") %>%
-        .[[1]] %>%
-        str_trim(., side = "both") %>%
-        .[. != ""] %>%
-        .[5:length(.)] %>%
-        str_replace_all(., ",-",".0") %>%
-        str_replace_all(., ",", ".") %>%
-        .[. != 0]
-    
-    htmltable_matrix <- matrix(htmltable_vector, ncol = length(htmltable_vector)/10, byrow = TRUE)
-    pricelist <- htmltable_matrix %>% 
-        as_tibble(., .name_repair = "minimal") %>%
-        janitor::clean_names() %>% 
-        rename(cartype = x,
-               price_hour = x_2,
-               price_day = x_3,
-               price_km = x_4)
-    
-    pricelist <- pricelist %>%
-        mutate(across(starts_with("price"), parse_number),
-               cartype = str_remove_all(cartype, "\\Les mer om [^.]*$"))
+    pricelist <- "https://bilkollektivet.no/priser/" %>%
+      read_html() %>%
+      html_nodes("table") %>% 
+      html_table() %>% 
+      pluck(1) %>% 
+      select(cartype = X2,
+             price_hour = X3,
+             price_day = X4,
+             price_km = X5) %>% 
+      mutate(cartype = str_remove_all(cartype, "Les.*"),
+             across(starts_with("price"), ~ parse_number(.x)),
+             price_km = price_km / 100)
     
     # Show cartype as title
     output$title <- renderText({
@@ -79,10 +65,9 @@ shinyServer(function(input, output) {
             "Småbil", "smabil",
             "Mellomklasse elbil", "elbil",
             "Stasjonsvogn", "stasjonsvogn",
+            "Sportsbil", "smabil",
             "Tesla Model 3 (el)", "elbil",
             "Tesla Model Y (el)", "elbil-premium",
-            "Jaguar Ipace (el)", "elbil-premium",
-            "7-seter", "9seter",
             "SUV 4x4", "suv",
             "El-varebil", "elvarebil",
             "9-seter", "9seter",
@@ -92,7 +77,7 @@ shinyServer(function(input, output) {
         url <- carlabels %>%
             filter(cartype == cartype()) %>%
             pull(linkname) %>%
-            sprintf("https://bilkollektivet.no/content/uploads/2019/09/%s.png",.)
+            sprintf("https://bilkollektivet.no/content/uploads/2019/09/%s.png", .)
         
         pricelist %>%
             filter(cartype == cartype()) %>%
@@ -311,7 +296,7 @@ shinyServer(function(input, output) {
         
         # Calculate insurance price
         if (input$insurance) {
-            ins_cost <- (n_hours() * 11) + (n_days() * 77)
+            ins_cost <- (n_hours() * 14) + (n_days() * 96)
         } else {
             ins_cost <- 0
         }
@@ -344,9 +329,10 @@ shinyServer(function(input, output) {
                 fmt_currency(
                     columns = vars(Price), 
                     currency = "NOK", 
-                    use_subunits = TRUE,
+                    use_subunits = FALSE,
                     sep_mark = ".",
                     dec_mark = ",",
+                    pattern = "{x},-",
                     incl_space = TRUE
                 ) %>%
                 tab_header(
@@ -383,9 +369,10 @@ shinyServer(function(input, output) {
                 fmt_currency(
                     columns = vars(Price), 
                     currency = "NOK", 
-                    use_subunits = TRUE,
+                    use_subunits = FALSE,
                     sep_mark = ".",
                     dec_mark = ",",
+                    pattern = "{x},-",
                     incl_space = TRUE
                 ) %>%
                 tab_header(

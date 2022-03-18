@@ -52,6 +52,7 @@ shinyUI(fluidPage(
                                           "Småbil", #= "smabil",
                                           "Mellomklasse elbil", #= "elbil_mellom",
                                           "Stasjonsvogn", #= "stasjonsvogn",
+                                          "Sportsbil", #= "sportsbil",
                                           "Tesla Model 3", #= "elbil",
                                           "Tesla Model Y", #= "elbil_premium",
                                           #"Jaguar Ipace", #= "elbil_premium",
