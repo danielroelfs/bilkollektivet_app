@@ -30,8 +30,6 @@ shinyServer(function(input, output) {
     
     cartype <- reactive({
         cartype <- input$cartype
-        cartype <- case_when(str_detect(cartype, "Tesla") ~ str_glue("{cartype} (el)"),
-                             TRUE ~ cartype)
     })
     
     insurance <- reactive({
@@ -59,25 +57,39 @@ shinyServer(function(input, output) {
     
     # Show base prices
     output$baseprices <- render_gt({
+        #carlabels <- tribble(
+        #    ~cartype, ~linkname,
+        #    "Liten elbil", "smabil",
+        #    "Småbil", "smabil",
+        #    "Mellomklasse elbil", "elbil",
+        #    "Stasjonsvogn", "stasjonsvogn",
+        #    "Sportsbil", "smabil",
+        #    "Tesla Model 3 (el)", "elbil",
+        #    "Tesla Model Y (el)", "elbil-premium",
+        #    "SUV 4x4", "suv",
+        #    "El-varebil", "elvarebil",
+        #    "9-seter", "9seter",
+        #    "Varebil", "varebil"
+        #)
+        
         carlabels <- tribble(
             ~cartype, ~linkname,
-            "Liten elbil", "smabil",
-            "Småbil", "smabil",
-            "Mellomklasse elbil", "elbil",
-            "Stasjonsvogn", "stasjonsvogn",
-            "Sportsbil", "smabil",
-            "Tesla Model 3 (el)", "elbil",
-            "Tesla Model Y (el)", "elbil-premium",
-            "SUV 4x4", "suv",
-            "El-varebil", "elvarebil",
-            "9-seter", "9seter",
-            "Varebil", "varebil"
+            "Opel Corsa-e", "https://bilkollektivet.no/content/uploads/2021/05/Opel-e-Corsa.png",
+            "Toyota Yaris", "https://bilkollektivet.no/content/uploads/2019/08/Toyota-Yaris20-1.png",
+            "Opel Ampera-e", "https://bilkollektivet.no/content/uploads/2021/11/Toyota-Yaris20-1.png",
+            "Toyota Corolla", "https://bilkollektivet.no/content/uploads/2021/11/Toyota-Yaris20-stasjons.png",
+            "Mazda MX5", "https://bilkollektivet.no/content/uploads/2019/09/MX5-250x600-1.png",
+            "Tesla Model 3", "https://bilkollektivet.no/content/uploads/2021/11/tesla-model-3.png",
+            "Tesla Model Y", "https://bilkollektivet.no/content/uploads/2021/08/TeslaY-250x600-1.png",
+            "Toyota Rav4", "https://bilkollektivet.no/content/uploads/2021/11/suv.png",
+            "Toyota Proace electric", "https://bilkollektivet.no/content/uploads/2021/11/el-varebil.png",
+            "Toyota Proace Verso", "https://bilkollektivet.no/content/uploads/2021/11/9-seter.png",
+            "Toyota Proace", "https://bilkollektivet.no/content/uploads/2021/11/1varebil.png",
         )
         
         url <- carlabels %>%
             filter(cartype == cartype()) %>%
-            pull(linkname) %>%
-            sprintf("https://bilkollektivet.no/content/uploads/2019/09/%s.png", .)
+            pull(linkname)
         
         pricelist %>%
             filter(cartype == cartype()) %>%
@@ -106,7 +118,7 @@ shinyServer(function(input, output) {
                 price_km = "Per kilometer"
             ) %>%
             text_transform(
-                locations = cells_body(vars(cartype)),
+                locations = cells_body(cartype),
                 fn = function(x) {
                     web_image(
                         url = url,
@@ -200,17 +212,17 @@ shinyServer(function(input, output) {
                 missing_text = ""
             ) %>%
             fmt(
-                columns = vars(Units),
+                columns = c(Units),
                 rows = contains("Discount"),
                 fns = function(x) pct(x * 100)
             ) %>%
             fmt_currency(
-                columns = vars(Baseprice), 
+                columns = c(Baseprice), 
                 currency = "NOK",
                 incl_space = TRUE
             ) %>%
             fmt_currency(
-                columns = vars(Price), 
+                columns = c(Price), 
                 currency = "NOK", 
                 use_subunits = FALSE,
                 sep_mark = ".",
@@ -222,7 +234,7 @@ shinyServer(function(input, output) {
                 title = md("**How much will my trip cost?**")
             ) %>%
             grand_summary_rows(
-                columns = vars(Price),
+                columns = c(Price),
                 fns = list(Total = ~sum(., na.rm = TRUE)),
                 formatter = fmt_currency,
                 currency = "NOK", 
@@ -243,12 +255,12 @@ shinyServer(function(input, output) {
             tab_footnote(
                 footnote =  md("Fuel and tolls included"),
                 locations = cells_grand_summary(
-                    columns = vars(Price)
+                    columns = c(Price)
                 )
             ) %>%
             cols_align(
                 align = "center",
-                columns = vars(Units)
+                columns = c(Units)
             ) %>%
             tab_style(
                 style = list(
@@ -274,7 +286,7 @@ shinyServer(function(input, output) {
                 ),
                 locations = list(
                     cells_body(
-                        columns = vars(Price)
+                        columns = c(Price)
                     )
                 )
             )
@@ -327,7 +339,7 @@ shinyServer(function(input, output) {
                     column_labels.font.weight = "bold"
                 ) %>%
                 fmt_currency(
-                    columns = vars(Price), 
+                    columns = c(Price), 
                     currency = "NOK", 
                     use_subunits = FALSE,
                     sep_mark = ".",
@@ -367,7 +379,7 @@ shinyServer(function(input, output) {
                     column_labels.font.weight = "bold"
                 ) %>%
                 fmt_currency(
-                    columns = vars(Price), 
+                    columns = c(Price), 
                     currency = "NOK", 
                     use_subunits = FALSE,
                     sep_mark = ".",
