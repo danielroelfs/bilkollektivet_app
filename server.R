@@ -78,7 +78,7 @@ shinyServer(function(input, output) {
       "Toyota Yaris (Budsjettklasse)", "https://bilkollektivet.no/content/uploads/2022/08/Yaris_600x250.png",
       "Opel Corsa-e", "https://bilkollektivet.no/content/uploads/2021/05/Opel-e-Corsa.png",
       "Toyota Yaris", "https://bilkollektivet.no/content/uploads/2022/08/Yaris22_600x250.png",
-      "Opel Ampera e", "https://bilkollektivet.no/content/uploads/2019/09/Ampera-250x600.png",
+      "Toyota Yaris Cross", "https://bilkollektivet.no/content/uploads/2019/09/Ampera-250x600.png",
       "Toyota Corolla", "https://bilkollektivet.no/content/uploads/2019/09/Corolla_STV_600x250.png",
       "Toyota Proace EL", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",
       "Toyota Proace", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",

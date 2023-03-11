@@ -65,7 +65,7 @@ shinyUI(fluidPage(
                               choices = c("Toyota Yaris (Budsjettklasse)",
                                           "Opel Corsa-e",
                                           "Toyota Yaris",
-                                          "Opel Ampera e",
+                                          "Toyota Yaris Cross",
                                           "Toyota Corolla",
                                           "Toyota Proace EL",
                                           "Toyota Proace",
