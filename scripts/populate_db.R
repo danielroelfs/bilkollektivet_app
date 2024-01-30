@@ -4,7 +4,7 @@
 
 library(tidyverse)
 library(rvest)
-library(RMySQL)
+library(DBI)
 library(dotenv)
 
 #-- Functions -------------------------
@@ -82,13 +82,7 @@ image_links <- function() {
 create_db_connection <- function() {
   #' Create a database connection
 
-  conn <- dbConnect(RMySQL::MySQL(),
-    dbname = Sys.getenv("BK_DATABASE"),
-    host = Sys.getenv("DB_HOST"),
-    port = as.integer(Sys.getenv("DB_PORT")),
-    user = Sys.getenv("DB_USER"),
-    password = Sys.getenv("DB_PWD")
-  )
+  conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
 
   return(conn)
 }
@@ -110,5 +104,5 @@ save_to_db <- function(data, table, quiet = FALSE) {
 pricelist <- scrape_prices()
 carlabels <- image_links()
 
-save_to_db(pricelist, table="pricelist")
-save_to_db(carlabels, table="carlabels")
+save_to_db(pricelist, table = "pricelist")
+save_to_db(carlabels, table = "carlabels")
