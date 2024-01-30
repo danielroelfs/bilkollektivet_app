@@ -4,7 +4,8 @@
 
 library(tidyverse)
 library(shiny)
-library(rvest)
+library(RMySQL)
+library(dotenv)
 library(gt)
 
 #-- Define server -------------------------
@@ -35,80 +36,36 @@ shinyServer(function(input, output) {
     insurance <- input$insurance
   })
 
-  # Input base prices
-  pricelist <- "https://bilkollektivet.no/priser/" |>
-    read_html() |>
-    html_nodes("div.fl-col") |>
-    html_text() |>
-    str_remove_all("\\n|\\t") |>
-    {
-      \(.) .[seq(19, 31)]
-    }() |>
-    as_tibble() |>
-    separate(
-      col = value,
-      into = c("cartype", "prices"),
-      sep = "Start"
-    ) |>
-    mutate(cartype = str_trim(cartype)) |>
-    filter(nchar(cartype) > 0) |>
-    separate(
-      col = cartype,
-      into = c("carname", "category"),
-      sep = "(?<=[a-z|0-9|L|Y])(?=[A-Z|9])"
-    ) |>
-    separate(
-      col = prices,
-      into = c(NA, "price_start", "price_hour", "price_day", "price_week", "price_km"),
-      sep = ":"
-    ) |>
-    mutate(
-      across(everything(), str_trim),
-      price_week = str_remove_all(price_week, "1 uke:"),
-      across(
-        price_start:last_col(),
-        ~ parse_number(.x, locale = locale(
-          decimal_mark = ",",
-          grouping_mark = " "
-        ))
-      ),
-      car = ifelse(str_detect(category, "Budsjett"),
-        yes = str_glue("{carname} ({category})"),
-        no = carname
-      )
-    )
+  conn <- dbConnect(RMySQL::MySQL(),
+    dbname = Sys.getenv("BK_DATABASE"),
+    host = Sys.getenv("DB_HOST"),
+    port = as.integer(Sys.getenv("DB_PORT")),
+    user = Sys.getenv("DB_USER"),
+    password = Sys.getenv("DB_PWD")
+  )
 
   # Show cartype as title
   output$title <- renderText({
     car()
   })
 
+  get_pricelist <- function(carlabel) {
+    res <- dbSendQuery(conn, str_glue("SELECT * FROM pricelist WHERE car = '{carlabel}'"))
+    pricelist <- dbFetch(res) |>
+      as_tibble()
+
+    return(pricelist)
+  }
+
   # Show base prices
   output$baseprices <- render_gt({
-    carlabels <- tribble(
-      ~car, ~linkname,
-      "Toyota Yaris (Budsjettklasse)", "https://bilkollektivet.no/content/uploads/2022/08/Yaris_600x250.png",
-      "Opel Corsa-e", "https://bilkollektivet.no/content/uploads/2021/05/Opel-e-Corsa.png",
-      "Toyota Yaris", "https://bilkollektivet.no/content/uploads/2022/08/Yaris22_600x250.png",
-      "Toyota Yaris Cross", "https://bilkollektivet.no/content/uploads/2019/09/Ampera-250x600.png",
-      "Toyota Corolla", "https://bilkollektivet.no/content/uploads/2019/09/Corolla_STV_600x250.png",
-      "Toyota Proace EL", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",
-      "Toyota Proace", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",
-      "Toyota Proace Verso", "https://bilkollektivet.no/content/uploads/2019/09/Proace-verso_600x250.png",
-      "Mazda MX5", "https://bilkollektivet.no/content/uploads/2019/09/MX5-250x600-1-768x335.png",
-      "Tesla Model 3", "https://bilkollektivet.no/content/uploads/2019/09/Tesla3-250x600.png",
-      "Tesla Model Y", "https://bilkollektivet.no/content/uploads/2021/08/TeslaY-250x600-1.png",
-      "Toyota Rav4", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Rav4_250x600.png",
-    )
 
-    url <- carlabels |>
-      filter(car == car()) |>
-      pull(linkname)
+    res <- dbSendQuery(conn, str_glue("SELECT linkname FROM carlabels WHERE car = '{car()}'"))
+    url <- dbFetch(res)
 
-    pricelist |>
+    get_pricelist(car()) |>
       select(-price_start) |>
       select(car, category, starts_with("price")) |>
-      filter(car == car()) |>
       gt() |>
       tab_options(
         table.width = pct(80),
@@ -147,7 +104,7 @@ shinyServer(function(input, output) {
       fmt_currency(
         columns = starts_with("price"),
         currency = "NOK",
-        sep_mark = " ",
+        sep_mark = "",
         dec_mark = ",",
         use_subunits = TRUE,
         incl_space = TRUE,
@@ -155,7 +112,7 @@ shinyServer(function(input, output) {
       fmt_currency(
         columns = c("price_hour", "price_day", "price_week"),
         currency = "NOK",
-        sep_mark = " ",
+        sep_mark = "",
         pattern = "{x},-",
         use_subunits = FALSE,
         incl_space = TRUE
@@ -178,8 +135,7 @@ shinyServer(function(input, output) {
 
   # Calculate breakdown
   output$breakdown <- render_gt({
-    prices <- pricelist |>
-      filter(car == car())
+    prices <- get_pricelist(car())
 
     # Calculate kilometer price
     dist_km <- dist()
@@ -201,13 +157,13 @@ shinyServer(function(input, output) {
     }
 
     if (input$insurance) {
-      ins_cost <- (n_hours() * 14) + (n_days() * 96)
+      ins_cost <- (n_hours() * 19) + (n_days() * 110)
       if (n_days() >= 1) {
         ins_unit <- n_days()
-        ins_cost_base <- 96
+        ins_cost_base <- 110
       } else {
         ins_unit <- n_hours()
-        ins_cost_base <- 14
+        ins_cost_base <- 19
       }
     } else {
       ins_cost <- 0
@@ -243,7 +199,7 @@ shinyServer(function(input, output) {
       fmt_currency(
         columns = c(Baseprice),
         currency = "NOK",
-        sep_mark = " ",
+        sep_mark = "",
         dec_mark = ",",
         incl_space = TRUE
       ) |>
@@ -251,7 +207,7 @@ shinyServer(function(input, output) {
         columns = c(Price),
         currency = "NOK",
         use_subunits = FALSE,
-        sep_mark = " ",
+        sep_mark = "",
         dec_mark = ",",
         incl_space = TRUE,
         pattern = "{x},-"
@@ -266,9 +222,10 @@ shinyServer(function(input, output) {
           .,
           currency = "NOK",
           use_subunits = FALSE,
-          sep_mark = " ",
+          sep_mark = "",
           dec_mark = ",",
-          incl_space = TRUE
+          incl_space = TRUE,
+          pattern = "{x},-"
         )
       ) |>
       tab_footnote(
@@ -276,7 +233,7 @@ shinyServer(function(input, output) {
         locations = cells_body(columns = "Units", rows = contains("Discount"))
       ) |>
       tab_footnote(
-        footnote = md("Additional insurance is 14 NOK per hour or 96 NOK per day"),
+        footnote = md("Additional insurance is 19 NOK per hour or 110 NOK per day"),
         locations = cells_body(columns = "Units", rows = contains("Additional insurance"))
       ) |>
       tab_footnote(
@@ -321,8 +278,7 @@ shinyServer(function(input, output) {
 
   # Calculate individual price
   output$per_passenger <- render_gt({
-    prices <- pricelist |>
-      filter(car == car())
+    prices <- get_pricelist(car())
 
     # Calculate kilometer price
     dist_km <- dist()
@@ -334,7 +290,7 @@ shinyServer(function(input, output) {
 
     # Calculate insurance price
     if (input$insurance) {
-      ins_cost <- (n_hours() * 14) + (n_days() * 96)
+      ins_cost <- (n_hours() * 19) + (n_days() * 110)
     } else {
       ins_cost <- 0
     }
@@ -367,10 +323,10 @@ shinyServer(function(input, output) {
           columns = c(Price),
           currency = "NOK",
           use_subunits = FALSE,
-          sep_mark = " ",
+          sep_mark = "",
           dec_mark = ",",
-          pattern = "{x}",
-          incl_space = TRUE
+          incl_space = TRUE,
+          pattern = "{x},-"
         ) |>
         tab_header(
           title = md("**Not splitting the costs**")
@@ -405,10 +361,10 @@ shinyServer(function(input, output) {
           columns = c(Price),
           currency = "NOK",
           use_subunits = FALSE,
-          sep_mark = ".",
+          sep_mark = "",
           dec_mark = ",",
-          pattern = "{x}",
-          incl_space = TRUE
+          incl_space = TRUE,
+          pattern = "{x},-"
         ) |>
         tab_header(
           title = md(sprintf("**Splitting the cost between %s people**", n_pass()))
