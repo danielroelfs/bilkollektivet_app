@@ -36,13 +36,7 @@ shinyServer(function(input, output) {
     insurance <- input$insurance
   })
 
-  conn <- dbConnect(RMySQL::MySQL(),
-    dbname = Sys.getenv("BK_DATABASE"),
-    host = Sys.getenv("DB_HOST"),
-    port = as.integer(Sys.getenv("DB_PORT")),
-    user = Sys.getenv("DB_USER"),
-    password = Sys.getenv("DB_PWD")
-  )
+  conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
 
   # Show cartype as title
   output$title <- renderText({
