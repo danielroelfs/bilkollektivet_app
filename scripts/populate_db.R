@@ -5,7 +5,6 @@
 library(tidyverse)
 library(rvest)
 library(DBI)
-library(dotenv)
 
 #-- Functions -------------------------
 
@@ -17,9 +16,7 @@ scrape_prices <- function() {
     html_nodes("div.fl-col") |>
     html_text() |>
     str_remove_all("\\n|\\t") |>
-    {
-      \(.) .[seq(19, 31)]
-    }() |>
+    `[`(x = _, j = seq(19, 31)) |>
     as_tibble() |>
     separate(
       col = value,

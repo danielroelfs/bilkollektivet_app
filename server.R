@@ -4,8 +4,7 @@
 
 library(tidyverse)
 library(shiny)
-library(RMySQL)
-library(dotenv)
+library(DBI)
 library(gt)
 
 #-- Define server -------------------------
