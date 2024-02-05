@@ -35,17 +35,19 @@ shinyServer(function(input, output) {
     insurance <- input$insurance
   })
 
-  conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
-
   # Show cartype as title
   output$title <- renderText({
     car()
   })
 
   get_pricelist <- function(carlabel) {
-    res <- dbSendQuery(conn, str_glue("SELECT * FROM pricelist WHERE car = '{carlabel}'"))
-    pricelist <- dbFetch(res) |>
+
+    conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
+
+    pricelist <- dbGetQuery(conn, str_glue("SELECT * FROM pricelist WHERE car = '{carlabel}'")) |>
       as_tibble()
+
+    dbDisconnect(conn)
 
     return(pricelist)
   }
@@ -53,8 +55,11 @@ shinyServer(function(input, output) {
   # Show base prices
   output$baseprices <- render_gt({
 
-    res <- dbSendQuery(conn, str_glue("SELECT linkname FROM carlabels WHERE car = '{car()}'"))
-    url <- dbFetch(res)
+    conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
+
+    url <- dbGetQuery(conn, str_glue("SELECT linkname FROM carlabels WHERE car = '{car()}'"))
+
+    dbDisconnect(conn)
 
     get_pricelist(car()) |>
       select(-price_start) |>
