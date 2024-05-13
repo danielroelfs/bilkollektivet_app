@@ -26,7 +26,7 @@ shinyUI(fluidPage(
       sliderInput(
         inputId = "dist",
         label = "Estimated distance:",
-        min = 10,
+        min = 0,
         max = 2000,
         value = 250,
         step = 10,
