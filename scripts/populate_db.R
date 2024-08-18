@@ -10,21 +10,21 @@ library(DBI)
 
 scrape_prices <- function() {
   #' Scrape the prices from bilkollektivet
-  
+
   raw_list <- "https://bilkollektivet.no/priser/" |>
-    read_html() |> 
+    read_html() |>
     html_nodes("div.fl-col") |>
-    html_text() |> 
-    str_remove_all("\\n|\\t") |> 
-    `[`(x = _, j = seq(36, 49)) |> 
-    as_tibble() 
-  
-  get_unparsed <- raw_list |> 
-    filter(str_detect(value, "Toyota Proace Verso9")) |> 
+    html_text() |>
+    str_remove_all("\\n|\\t") |>
+    `[`(x = _, j = seq(36, 49)) |>
+    as_tibble()
+
+  get_unparsed <- raw_list |>
+    filter(str_detect(value, "Toyota Proace Verso9")) |>
     mutate(value = str_extract(value, "(Toyota Proace Verso9).*"))
-  
-  pricelist <- raw_list |> 
-    bind_rows(get_unparsed) |> 
+
+  pricelist <- raw_list |>
+    bind_rows(get_unparsed) |>
     separate(
       col = value,
       into = c("cartype", "prices"),
@@ -56,9 +56,10 @@ scrape_prices <- function() {
           grouping_mark = " "
         ))
       ),
-      car = ifelse(str_detect(category, "Budsjett"),
-                   yes = str_glue("{carname} ({category})"),
-                   no = carname
+      car = ifelse(
+        str_detect(category, "Budsjett"),
+        yes = str_glue("{carname} ({category})"),
+        no = carname
       )
     )
 
