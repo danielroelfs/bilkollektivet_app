@@ -10,25 +10,35 @@ library(DBI)
 
 scrape_prices <- function() {
   #' Scrape the prices from bilkollektivet
-
-  pricelist <- "https://bilkollektivet.no/priser/" |>
-    read_html() |>
+  
+  raw_list <- "https://bilkollektivet.no/priser/" |>
+    read_html() |> 
     html_nodes("div.fl-col") |>
-    html_text() |>
-    str_remove_all("\\n|\\t") |>
-    `[`(x = _, j = seq(19, 31)) |>
-    as_tibble() |>
+    html_text() |> 
+    str_remove_all("\\n|\\t") |> 
+    `[`(x = _, j = seq(36, 49)) |> 
+    as_tibble() 
+  
+  get_unparsed <- raw_list |> 
+    filter(str_detect(value, "Toyota Proace Verso9")) |> 
+    mutate(value = str_extract(value, "(Toyota Proace Verso9).*"))
+  
+  pricelist <- raw_list |> 
+    bind_rows(get_unparsed) |> 
     separate(
       col = value,
       into = c("cartype", "prices"),
       sep = "Start"
     ) |>
-    mutate(cartype = str_trim(cartype)) |>
+    mutate(
+      cartype = str_trim(cartype),
+      cartype = str_replace_all(cartype, "SUV", "Suv")
+    ) |>
     filter(nchar(cartype) > 0) |>
     separate(
       col = cartype,
       into = c("carname", "category"),
-      sep = "(?<=[a-z|0-9|L|Y])(?=[A-Z|9])"
+      sep = "(?<=[a-z|0-9|L|Y|S])(?=[A-Z|9|E])"
     ) |>
     separate(
       col = prices,
@@ -37,6 +47,7 @@ scrape_prices <- function() {
     ) |>
     mutate(
       across(everything(), str_trim),
+      across(everything(), ~str_replace_all(.x, "Suv", "SUV")),
       price_week = str_remove_all(price_week, "1 uke:"),
       across(
         price_start:last_col(),
@@ -46,8 +57,8 @@ scrape_prices <- function() {
         ))
       ),
       car = ifelse(str_detect(category, "Budsjett"),
-        yes = str_glue("{carname} ({category})"),
-        no = carname
+                   yes = str_glue("{carname} ({category})"),
+                   no = carname
       )
     )
 
@@ -62,15 +73,17 @@ image_links <- function() {
     "Toyota Yaris (Budsjettklasse)", "https://bilkollektivet.no/content/uploads/2022/08/Yaris_600x250.png",
     "Opel Corsa-e", "https://bilkollektivet.no/content/uploads/2021/05/Opel-e-Corsa.png",
     "Toyota Yaris", "https://bilkollektivet.no/content/uploads/2022/08/Yaris22_600x250.png",
+    "Mazda MX5", "https://bilkollektivet.no/content/uploads/2019/09/MX5-250x600-1-768x335.png",
     "Toyota Yaris Cross", "https://bilkollektivet.no/content/uploads/2019/09/Ampera-250x600.png",
+    "MG ZS", "https://bilkollektivet.no/content/uploads/2022/12/MG-ZS-side-1-768x293.png",
     "Toyota Corolla", "https://bilkollektivet.no/content/uploads/2019/09/Corolla_STV_600x250.png",
+    "Tesla Model 3", "https://bilkollektivet.no/content/uploads/2019/09/Tesla3-250x600.png",
+    "Tesla Model Y", "https://bilkollektivet.no/content/uploads/2021/08/TeslaY-250x600-1.png",
+    "Toyota Corolla Cross", "https://bilkollektivet.no/content/uploads/2022/12/CorollaCross-side_takboks-768x432.jpg",
+    "Toyota Rav4", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Rav4_250x600.png",
     "Toyota Proace EL", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",
     "Toyota Proace", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",
     "Toyota Proace Verso", "https://bilkollektivet.no/content/uploads/2019/09/Proace-verso_600x250.png",
-    "Mazda MX5", "https://bilkollektivet.no/content/uploads/2019/09/MX5-250x600-1-768x335.png",
-    "Tesla Model 3", "https://bilkollektivet.no/content/uploads/2019/09/Tesla3-250x600.png",
-    "Tesla Model Y", "https://bilkollektivet.no/content/uploads/2021/08/TeslaY-250x600-1.png",
-    "Toyota Rav4", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Rav4_250x600.png",
   )
 
   return(carlabels)
