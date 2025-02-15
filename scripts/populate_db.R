@@ -93,10 +93,10 @@ image_links <- function() {
 subscription_info <- function() {
   #' Get the data associated with different subscriptions
   data_sub <- tribble(
-    ~type, ~start_price, ~time_discount,
-    "Klikk og kjør", 35, 0,
-    "Privat", 0, 0.05,
-    "Privat+", 0, 0.4
+    ~type, ~cost, ~start_price, ~time_discount,
+    "Klikk og kjør", 0, 35, 0,
+    "Privat", 149, 0, 0.05,
+    "Privat+", 1250, 0, 0.4
   )
 
   return(data_sub)
