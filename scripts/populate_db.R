@@ -28,7 +28,7 @@ scrape_prices <- function() {
     separate(
       col = value,
       into = c("cartype", "prices"),
-      sep = "Start"
+      sep = "Timepris:"
     ) |>
     mutate(
       cartype = str_trim(cartype),
@@ -42,15 +42,15 @@ scrape_prices <- function() {
     ) |>
     separate(
       col = prices,
-      into = c(NA, "price_start", "price_hour", "price_day", "price_week", "price_km"),
+      into = c("price_hour", "price_day", "price_week", "price_km"),
       sep = ":"
     ) |>
     mutate(
       across(everything(), str_trim),
-      across(everything(), ~str_replace_all(.x, "Suv", "SUV")),
+      across(everything(), ~ str_replace_all(.x, "Suv", "SUV")),
       price_week = str_remove_all(price_week, "1 uke:"),
       across(
-        price_start:last_col(),
+        price_hour:last_col(),
         ~ parse_number(.x, locale = locale(
           decimal_mark = ",",
           grouping_mark = " "
@@ -90,6 +90,18 @@ image_links <- function() {
   return(carlabels)
 }
 
+subscription_info <- function() {
+  #' Get the data associated with different subscriptions
+  data_sub <- tribble(
+    ~type, ~start_price, ~time_discount,
+    "Klikk og kjør", 35, 0,
+    "Privat", 0, 0.05,
+    "Privat+", 0, 0.4
+  )
+
+  return(data_sub)
+}
+
 create_db_connection <- function() {
   #' Create a database connection
 
@@ -114,6 +126,8 @@ save_to_db <- function(data, table, quiet = FALSE) {
 
 pricelist <- scrape_prices()
 carlabels <- image_links()
+subscriptions <- subscription_info()
 
 save_to_db(pricelist, table = "pricelist")
 save_to_db(carlabels, table = "carlabels")
+save_to_db(subscriptions, table = "subscriptions")
