@@ -31,6 +31,10 @@ shinyServer(function(input, output) {
     car <- input$car
   })
 
+  subscription <- reactive({
+    subscription <- input$subscription
+  })
+
   insurance <- reactive({
     insurance <- input$insurance
   })
@@ -41,7 +45,6 @@ shinyServer(function(input, output) {
   })
 
   get_pricelist <- function(carlabel) {
-
     conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
 
     pricelist <- dbGetQuery(conn, str_glue("SELECT * FROM pricelist WHERE car = '{carlabel}'")) |>
@@ -54,7 +57,6 @@ shinyServer(function(input, output) {
 
   # Show base prices
   output$baseprices <- render_gt({
-
     conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
 
     url <- dbGetQuery(conn, str_glue("SELECT linkname FROM carlabels WHERE car = '{car()}'"))
@@ -62,7 +64,6 @@ shinyServer(function(input, output) {
     dbDisconnect(conn)
 
     get_pricelist(car()) |>
-      select(-price_start) |>
       select(car, category, starts_with("price")) |>
       gt() |>
       tab_options(
@@ -85,9 +86,9 @@ shinyServer(function(input, output) {
       cols_label(
         car = "",
         category = "Class",
-        price_hour = "Timepris",
-        price_day = "Døgnpris",
-        price_week = "Ukepris",
+        price_hour = "Per hour",
+        price_day = "Per day",
+        price_week = "Per week",
         price_km = "Per kilometer"
       ) |>
       text_transform(
