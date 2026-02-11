@@ -21,7 +21,9 @@ shinyUI(fluidPage(
   # Sidebar with a slider input for number of bins
   sidebarLayout(
     sidebarPanel(
-      tags$style(".well {background-color: transparent;border: none; box-shadow: none}"),
+      tags$style(
+        ".well {background-color: transparent;border: none; box-shadow: none}"
+      ),
       chooseSliderSkin("Flat", color = "#8A29BE"),
       sliderInput(
         inputId = "dist",
@@ -63,15 +65,17 @@ shinyUI(fluidPage(
           "Toyota Yaris (Budsjettklasse)",
           "Opel Corsa-e",
           "Toyota Yaris",
-          "Mazda MX5",
+          "Mazda MX-5",
           "Toyota Yaris Cross",
           "MG ZS",
           "Toyota Corolla",
           "Tesla Model 3",
           "Tesla Model Y",
           "Corolla Cross",
+          "Toyota RAV4",
+          "Opel Vivaro EL",
+          "Opel Vivaro",
           "Toyota Proace",
-          "Toyota Rav4",
           "Toyota Proace EL",
           "Toyota Proace Verso"
         ),

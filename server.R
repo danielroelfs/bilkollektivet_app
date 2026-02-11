@@ -47,7 +47,10 @@ shinyServer(function(input, output) {
   get_pricelist <- function(carlabel) {
     conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
 
-    pricelist <- dbGetQuery(conn, str_glue("SELECT * FROM pricelist WHERE car = '{carlabel}'")) |>
+    pricelist <- dbGetQuery(
+      conn,
+      str_glue("SELECT * FROM pricelist WHERE car = '{carlabel}'")
+    ) |>
       as_tibble()
 
     dbDisconnect(conn)
@@ -59,7 +62,10 @@ shinyServer(function(input, output) {
   output$baseprices <- render_gt({
     conn <- dbConnect(RSQLite::SQLite(), "./data/bilkollektivet.sqlite")
 
-    url <- dbGetQuery(conn, str_glue("SELECT linkname FROM carlabels WHERE car = '{car()}'"))
+    url <- dbGetQuery(
+      conn,
+      str_glue("SELECT linkname FROM carlabels WHERE car = '{car()}'")
+    )
 
     dbDisconnect(conn)
 
@@ -77,7 +83,8 @@ shinyServer(function(input, output) {
             color = "white",
             weight = px(2)
           )
-        ), locations = list(
+        ),
+        locations = list(
           cells_body(
             columns = everything()
           )
@@ -88,7 +95,6 @@ shinyServer(function(input, output) {
         category = "Class",
         price_hour = "Per hour",
         price_day = "Per day",
-        price_week = "Per week",
         price_km = "Per kilometer"
       ) |>
       text_transform(
@@ -109,7 +115,7 @@ shinyServer(function(input, output) {
         incl_space = TRUE,
       ) |>
       fmt_currency(
-        columns = c("price_hour", "price_day", "price_week"),
+        columns = c("price_hour", "price_day"),
         currency = "NOK",
         sep_mark = "",
         pattern = "{x},-",
@@ -147,13 +153,11 @@ shinyServer(function(input, output) {
     if (n_days() < 7) {
       discount_price <- 0
     } else if (n_days() >= 7 & n_days() < 14) {
-      discount_price <- (n_days() * prices$price_day) - (
-        prices$price_week + (((n_days() - 7) %% 7) * prices$price_day)
-      )
+      discount_price <- (n_days() * prices$price_day) -
+        (prices$price_week + (((n_days() - 7) %% 7) * prices$price_day))
     } else if (n_days() >= 14) {
-      discount_price <- (n_days() * prices$price_day) - (
-        (prices$price_week * 2) + (((n_days() - 14) %% 7) * prices$price_day)
-      )
+      discount_price <- (n_days() * prices$price_day) -
+        ((prices$price_week * 2) + (((n_days() - 14) %% 7) * prices$price_day))
     }
 
     if (input$insurance) {
@@ -175,12 +179,12 @@ shinyServer(function(input, output) {
 
     # Create breakdown table
     breakdown_table <- tribble(
-      ~Item, ~Units, ~Baseprice, ~Price,
-      "Days", n_days(), prices$price_day, days_price,
-      "Discount", discout_perc, NA, discount_price * -1,
-      "Hours", n_hours(), prices$price_hour, hours_price,
-      "Distance", dist_km, prices$price_km, price_km,
-      "Additional insurance", ins_unit, ins_cost_base, ins_cost
+      ~Item                  , ~Units       , ~Baseprice        , ~Price              ,
+      "Days"                 , n_days()     , prices$price_day  , days_price          ,
+      "Discount"             , discout_perc , NA                , discount_price * -1 ,
+      "Hours"                , n_hours()    , prices$price_hour , hours_price         ,
+      "Distance"             , dist_km      , prices$price_km   , price_km            ,
+      "Additional insurance" , ins_unit     , ins_cost_base     , ins_cost
     )
 
     breakdown_table |>
@@ -232,15 +236,24 @@ shinyServer(function(input, output) {
         )
       ) |>
       tab_footnote(
-        footnote = md("Discount on rental periods of 7 days or longer, additional discount for 14 days or longer"),
+        footnote = md(
+          "Discount on rental periods of 7 days or longer, additional discount for 14 days or longer"
+        ),
         locations = cells_body(columns = "Price", rows = contains("Discount"))
       ) |>
       tab_footnote(
-        footnote = md("Additional insurance is 19 NOK per hour or 110 NOK per day"),
-        locations = cells_body(columns = "Units", rows = contains("Additional insurance"))
+        footnote = md(
+          "Additional insurance is 19 NOK per hour or 110 NOK per day"
+        ),
+        locations = cells_body(
+          columns = "Units",
+          rows = contains("Additional insurance")
+        )
       ) |>
       tab_footnote(
-        footnote = md("Tolls included, fuel included only for non-electric vehicles"),
+        footnote = md(
+          "Tolls included, fuel included only for non-electric vehicles"
+        ),
         locations = cells_grand_summary(
           columns = c(Price)
         )
@@ -309,22 +322,26 @@ shinyServer(function(input, output) {
     if (n_days() < 7) {
       discount_price <- 0
     } else if (n_days() >= 7 & n_days() < 14) {
-      discount_price <- (n_days() * prices$price_day) - (
-        prices$price_week + (((n_days() - 7) %% 7) * prices$price_day)
-      )
+      discount_price <- (n_days() * prices$price_day) -
+        (prices$price_week + (((n_days() - 7) %% 7) * prices$price_day))
     } else if (n_days() >= 14) {
-      discount_price <- (n_days() * prices$price_day) - (
-        (prices$price_week * 2) + (((n_days() - 14) %% 7) * prices$price_day)
-      )
+      discount_price <- (n_days() * prices$price_day) -
+        ((prices$price_week * 2) + (((n_days() - 14) %% 7) * prices$price_day))
     }
 
-    total_price <- sum(days_price, discount_price * -1, hours_price, price_km, ins_cost)
+    total_price <- sum(
+      days_price,
+      discount_price * -1,
+      hours_price,
+      price_km,
+      ins_cost
+    )
     passenger_price <- total_price / n_pass()
 
     if (n_pass() == 1) {
       tribble(
-        ~text, ~Price,
-        "Total price is equal to individual price", total_price,
+        ~text                                      , ~Price      ,
+        "Total price is equal to individual price" , total_price ,
       ) |>
         gt() |>
         cols_label(text = "") |>
@@ -360,9 +377,9 @@ shinyServer(function(input, output) {
         )
     } else {
       tribble(
-        ~text, ~Price,
-        "Total price for trip", total_price,
-        "Price per passenger", passenger_price,
+        ~text                  , ~Price          ,
+        "Total price for trip" , total_price     ,
+        "Price per passenger"  , passenger_price ,
       ) |>
         gt() |>
         cols_label(text = "") |>
@@ -380,7 +397,10 @@ shinyServer(function(input, output) {
           pattern = "{x},-"
         ) |>
         tab_header(
-          title = md(sprintf("**Splitting the cost between %s people**", n_pass()))
+          title = md(sprintf(
+            "**Splitting the cost between %s people**",
+            n_pass()
+          ))
         ) |>
         tab_style(
           style = list(
