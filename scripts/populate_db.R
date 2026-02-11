@@ -30,9 +30,9 @@ scrape_prices <- function() {
       names_sep = "_"
     ) |>
     mutate(
-      across(is.character, str_trim),
-      across(is.character, ~ str_remove(.x, ",-")),
-      across(is.character, ~ if_else(.x == "", NA, .x)),
+      across(where(is.character), str_trim),
+      across(where(is.character), ~ str_remove(.x, ",-")),
+      across(where(is.character), ~ if_else(.x == "", NA, .x)),
       price_hour = coalesce(selected_3, selected_4),
       price_hour = as.numeric(price_hour),
       price_day = coalesce(selected_5, selected_6),
