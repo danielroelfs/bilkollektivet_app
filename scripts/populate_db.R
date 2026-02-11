@@ -11,51 +11,43 @@ library(DBI)
 scrape_prices <- function() {
   #' Scrape the prices from bilkollektivet
 
-  raw_list <- "https://bilkollektivet.no/priser/" |>
+  raw_list <- "https://bilkollektivet.no/biler/" |>
     read_html() |>
-    html_nodes("div.fl-col") |>
+    html_nodes("div.flip-card") |>
     html_text() |>
-    str_remove_all("\\n|\\t") |>
-    `[`(x = _, j = seq(36, 49)) |>
+    str_remove_all("\\n") |>
+    str_trim() |>
     as_tibble()
 
-  get_unparsed <- raw_list |>
-    filter(str_detect(value, "Toyota Proace Verso9")) |>
-    mutate(value = str_extract(value, "(Toyota Proace Verso9).*"))
-
-  pricelist <- raw_list |>
-    bind_rows(get_unparsed) |>
-    separate(
-      col = value,
-      into = c("cartype", "prices"),
-      sep = "Timepris:"
+  pricelist = raw_list |>
+    mutate(value = str_split(value, "    ")) |>
+    mutate(
+      selected = map(value, ~ .x[c(1, 2, 34, 33, 46, 45)]),
+      price_km = map(value, ~ keep(.x, str_detect, "pr. km")),
+    ) |>
+    unnest_wider(
+      selected,
+      names_sep = "_"
     ) |>
     mutate(
-      cartype = str_trim(cartype),
-      cartype = str_replace_all(cartype, "SUV", "Suv")
+      across(is.character, str_trim),
+      across(is.character, ~ str_remove(.x, ",-")),
+      across(is.character, ~ if_else(.x == "", NA, .x)),
+      price_hour = coalesce(selected_3, selected_4),
+      price_hour = as.numeric(price_hour),
+      price_day = coalesce(selected_5, selected_6),
+      price_day = str_remove_all(price_day, " "),
+      price_day = parse_number(price_day, locale = locale(grouping_mark = " ")),
+      price_km = str_remove(price_km, "Drivstoff og slitasje pr. km: "),
+      price_km = str_remove(price_km, "Slitasje pr. km: "),
+      price_km = str_trim(price_km),
+      price_km = parse_number(
+        price_km,
+        locale = locale(decimal_mark = ",", grouping_mark = " ")
+      )
     ) |>
-    filter(nchar(cartype) > 0) |>
-    separate(
-      col = cartype,
-      into = c("carname", "category"),
-      sep = "(?<=[a-z|0-9|L|Y|S])(?=[A-Z|9|E])"
-    ) |>
-    separate(
-      col = prices,
-      into = c("price_hour", "price_day", "price_week", "price_km"),
-      sep = ":"
-    ) |>
+    select(carname = selected_1, category = selected_2, starts_with("price")) |>
     mutate(
-      across(everything(), str_trim),
-      across(everything(), ~ str_replace_all(.x, "Suv", "SUV")),
-      price_week = str_remove_all(price_week, "1 uke:"),
-      across(
-        price_hour:last_col(),
-        ~ parse_number(.x, locale = locale(
-          decimal_mark = ",",
-          grouping_mark = " "
-        ))
-      ),
       car = ifelse(
         str_detect(category, "Budsjett"),
         yes = str_glue("{carname} ({category})"),
@@ -70,21 +62,23 @@ image_links <- function() {
   #' Scrape car with links to the images
 
   carlabels <- tribble(
-    ~car, ~linkname,
-    "Toyota Yaris (Budsjettklasse)", "https://bilkollektivet.no/content/uploads/2022/08/Yaris_600x250.png",
-    "Opel Corsa-e", "https://bilkollektivet.no/content/uploads/2021/05/Opel-e-Corsa.png",
-    "Toyota Yaris", "https://bilkollektivet.no/content/uploads/2022/08/Yaris22_600x250.png",
-    "Mazda MX5", "https://bilkollektivet.no/content/uploads/2019/09/MX5-250x600-1-768x335.png",
-    "Toyota Yaris Cross", "https://bilkollektivet.no/content/uploads/2022/08/BK_YarisCross22.png",
-    "MG ZS", "https://bilkollektivet.no/content/uploads/2022/12/MG-ZS-side-1-768x293.png",
-    "Toyota Corolla", "https://bilkollektivet.no/content/uploads/2019/09/Corolla_STV_600x250.png",
-    "Tesla Model 3", "https://bilkollektivet.no/content/uploads/2019/09/Tesla3-250x600.png",
-    "Tesla Model Y", "https://bilkollektivet.no/content/uploads/2021/08/TeslaY-250x600-1.png",
-    "Corolla Cross", "https://bilkollektivet.no/content/uploads/2022/12/CorollaCross-side_takboks-768x432.jpg",
-    "Toyota Rav4", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Rav4_250x600.png",
-    "Toyota Proace EL", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",
-    "Toyota Proace", "https://bilkollektivet.no/content/uploads/2019/09/Toyota-Proace-L2_695x250.png",
-    "Toyota Proace Verso", "https://bilkollektivet.no/content/uploads/2019/09/Proace-verso_600x250.png",
+    ~car                            , ~linkname                                                                                                                                             ,
+    "Toyota Yaris (Budsjettklasse)" , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/3e81b91a-1bb4-4c41-9c99-d6e9b0e2b84a/YarisBudsjett.png?content-type=image%2Fpng" ,
+    "Opel Corsa-e"                  , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/2807c76a-f43a-4b30-82ba-0a3eb9d73ed8/OpelCorsa.png?content-type=image%2Fpng"     ,
+    "Toyota Yaris"                  , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/62fb9651-6ecb-427e-9f05-d6b66e82e00a/Yaris.png?content-type=image%2Fpng"         ,
+    "Mazda MX5"                     , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/f368fd0d-a8b2-477c-b6f9-8ac55990fea2/Mazda-MX-5.png?content-type=image%2Fpng"    ,
+    "Toyota Yaris Cross"            , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/1f30a917-fe9b-43b9-b8dd-52536c8e1685/YarisCross.png?content-type=image%2Fpng"    ,
+    "MG ZS"                         , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/e21b4379-0f66-4b11-b894-2e5e53422e97/MG-ZS.png?content-type=image%2Fpng"         ,
+    "Toyota Corolla"                , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/8b44827c-f966-4b9c-b74f-b209f797eee5/Corolla.png?content-type=image%2Fpng"       ,
+    "Tesla Model 3"                 , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/705c4794-902d-4c32-acfd-be8a26bdb2f4/Tesla-mod-3.png?content-type=image%2Fpng"   ,
+    "Tesla Model Y"                 , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/7670e022-5445-45b7-843b-929de8dba453/Tesla-mod-Y.png?content-type=image%2Fpng"   ,
+    "Corolla Cross"                 , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/17ae19d2-2f25-4700-b92e-be1d0d901dea/CorollaCross.png?content-type=image%2Fpng"  ,
+    "Toyota Rav4"                   , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/510a0ea8-9b02-49c4-b16f-f4345d4f2007/RAV4.png?content-type=image%2Fpng"          ,
+    "Opel Vivaro EL"                , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/5daad8e8-d0f8-4d66-a52e-4a354a8963f8/Proace-Vivaro.png?content-type=image%2Fpng" ,
+    "Opel Vivaro"                   , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/5daad8e8-d0f8-4d66-a52e-4a354a8963f8/Proace-Vivaro.png?content-type=image%2Fpng" ,
+    "Toyota Proace EL"              , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/5daad8e8-d0f8-4d66-a52e-4a354a8963f8/Proace-Vivaro.png?content-type=image%2Fpng" ,
+    "Toyota Proace"                 , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/5daad8e8-d0f8-4d66-a52e-4a354a8963f8/Proace-Vivaro.png?content-type=image%2Fpng" ,
+    "Toyota Proace Verso"           , "https://images.squarespace-cdn.com/content/67d04c1f88e98e18f1f5b0bb/75723a31-4401-4361-9418-94596a3fefe7/Proace-verso.png?content-type=image%2Fpng"  ,
   )
 
   return(carlabels)
@@ -93,10 +87,10 @@ image_links <- function() {
 subscription_info <- function() {
   #' Get the data associated with different subscriptions
   data_sub <- tribble(
-    ~type, ~cost, ~start_price, ~time_discount,
-    "Klikk og kjør", 0, 35, 0,
-    "Privat", 149, 0, 0.05,
-    "Privat+", 1250, 0, 0.4
+    ~type           , ~cost , ~start_price , ~time_discount ,
+    "Klikk og kjør" ,     0 ,           35 , 0              ,
+    "Privat"        ,   149 ,            0 , 0.05           ,
+    "Privat+"       ,  1250 ,            0 , 0.4
   )
 
   return(data_sub)
@@ -115,7 +109,13 @@ save_to_db <- function(data, table, quiet = FALSE) {
 
   conn <- create_db_connection()
 
-  dbWriteTable(conn, name = table, value = data, row.names = FALSE, overwrite = TRUE)
+  dbWriteTable(
+    conn,
+    name = table,
+    value = data,
+    row.names = FALSE,
+    overwrite = TRUE
+  )
 
   if (!quiet) {
     print(str_glue("Saved to {table}"))
