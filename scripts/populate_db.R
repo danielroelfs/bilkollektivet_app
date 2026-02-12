@@ -19,7 +19,7 @@ scrape_prices <- function() {
     str_trim() |>
     as_tibble()
 
-  pricelist = raw_list |>
+  pricelist <- raw_list |>
     mutate(value = str_split(value, "    ")) |>
     mutate(
       selected = map(value, ~ .x[c(1, 2, 34, 33, 46, 45)]),
