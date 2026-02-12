@@ -150,16 +150,6 @@ shinyServer(function(input, output) {
     days_price <- prices$price_day * n_days()
     hours_price <- prices$price_hour * n_hours()
 
-    if (n_days() < 7) {
-      discount_price <- 0
-    } else if (n_days() >= 7 & n_days() < 14) {
-      discount_price <- (n_days() * prices$price_day) -
-        (prices$price_week + (((n_days() - 7) %% 7) * prices$price_day))
-    } else if (n_days() >= 14) {
-      discount_price <- (n_days() * prices$price_day) -
-        ((prices$price_week * 2) + (((n_days() - 14) %% 7) * prices$price_day))
-    }
-
     if (input$insurance) {
       ins_cost <- (n_hours() * 19) + (n_days() * 110)
       if (n_days() >= 1) {
@@ -175,16 +165,13 @@ shinyServer(function(input, output) {
       ins_cost_base <- 0
     }
 
-    discout_perc <- discount_price / (n_days() * prices$price_day)
-
     # Create breakdown table
     breakdown_table <- tribble(
-      ~Item                  , ~Units       , ~Baseprice        , ~Price              ,
-      "Days"                 , n_days()     , prices$price_day  , days_price          ,
-      "Discount"             , discout_perc , NA                , discount_price * -1 ,
-      "Hours"                , n_hours()    , prices$price_hour , hours_price         ,
-      "Distance"             , dist_km      , prices$price_km   , price_km            ,
-      "Additional insurance" , ins_unit     , ins_cost_base     , ins_cost
+      ~Item                  , ~Units    , ~Baseprice        , ~Price      ,
+      "Days"                 , n_days()  , prices$price_day  , days_price  ,
+      "Hours"                , n_hours() , prices$price_hour , hours_price ,
+      "Distance"             , dist_km   , prices$price_km   , price_km    ,
+      "Additional insurance" , ins_unit  , ins_cost_base     , ins_cost
     )
 
     breakdown_table |>
@@ -193,15 +180,6 @@ shinyServer(function(input, output) {
         table.width = pct(80),
         grand_summary_row.background.color = "#8A29BE",
         column_labels.font.weight = "bold"
-      ) |>
-      fmt(
-        columns = c(Units),
-        rows = contains("Discount"),
-        fns = function(x) pct(round(x * 100, 1)),
-      ) |>
-      sub_missing(
-        columns = c(Baseprice),
-        missing_text = "---"
       ) |>
       fmt_currency(
         columns = c(Baseprice),
@@ -225,6 +203,7 @@ shinyServer(function(input, output) {
       grand_summary_rows(
         columns = c(Price),
         fns = list(Total = ~ sum(., na.rm = TRUE)),
+        missing_text = "",
         fmt = ~ fmt_currency(
           .,
           currency = "NOK",
@@ -234,12 +213,6 @@ shinyServer(function(input, output) {
           incl_space = TRUE,
           pattern = "{x},-"
         )
-      ) |>
-      tab_footnote(
-        footnote = md(
-          "Discount on rental periods of 7 days or longer, additional discount for 14 days or longer"
-        ),
-        locations = cells_body(columns = "Price", rows = contains("Discount"))
       ) |>
       tab_footnote(
         footnote = md(
@@ -311,27 +284,8 @@ shinyServer(function(input, output) {
       ins_cost <- 0
     }
 
-    if (n_days() < 7) {
-      discount <- 0
-    } else if (n_days() >= 7 & n_days() < 14) {
-      discount <- 0.20
-    } else if (n_days() >= 14) {
-      discount <- 0.30
-    }
-
-    if (n_days() < 7) {
-      discount_price <- 0
-    } else if (n_days() >= 7 & n_days() < 14) {
-      discount_price <- (n_days() * prices$price_day) -
-        (prices$price_week + (((n_days() - 7) %% 7) * prices$price_day))
-    } else if (n_days() >= 14) {
-      discount_price <- (n_days() * prices$price_day) -
-        ((prices$price_week * 2) + (((n_days() - 14) %% 7) * prices$price_day))
-    }
-
     total_price <- sum(
       days_price,
-      discount_price * -1,
       hours_price,
       price_km,
       ins_cost
